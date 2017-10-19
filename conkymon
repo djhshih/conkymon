@@ -4,6 +4,8 @@
 
 # Requires: conky
 
+set -eu
+
 if (( $# < 1 )); then
 	echo "usage: conkymon start [interval]" >&2
 	echo "       conkymon stop" >&2
@@ -22,22 +24,34 @@ conky.text = [[
 ]]
 '
 
+pidfile=/var/run/user/$UID/conkymon.pid
+
 case $1 in
 	start)
-
+		shift
 		# set update interval (in seconds)
-		if [[ -n $2 ]]; then
-			interval=$2
+		if (( $# >=1 )); then
+			interval=$1
 		else
 			interval=10
 		fi
 
 		# start conky in background
-		conky -p 0 -c <(echo $conkyrc) -u $interval &
-		echo $! > .conky_pid
+		if [[ ! -f $pidfile ]]; then
+			conky -c <(echo $conkyrc) -u $interval &
+			echo $! > $pidfile
+		else
+			echo "Error: conkymon is already running (pid = $(cat $pidfile))"
+			exit 1
+		fi
 		;;
 	stop)
-		kill $(cat .conky_pid)
-		rm .conky_pid
+		shift
+		kill $(cat $pidfile)
+		rm $pidfile
+		;;
+	*)
+		echo "Error: unrecognized command $1"
+		exit 1
 		;;
 esac
