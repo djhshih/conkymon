@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# System monitor daemon service
+
+# Requires: conky
+
+if (( $# < 1 )); then
+	echo "usage: conkymon start [interval]" >&2
+	echo "       conkymon stop" >&2
+	exit 1
+fi
+
+conkyrc='
+conky.config = {
+ cpu_avg_samples = 6,
+ no_buffers = true,
+ own_window = true,
+ out_to_stderr = true
+}
+conky.text = [[
+[conky] up: $uptime | cpu: $cpu% | mem: $mem ($memperc%) | disk: ${fs_used} (${fs_used_perc}%)
+]]
+'
+
+case $1 in
+	start)
+
+		# set update interval (in seconds)
+		if [[ -n $2 ]]; then
+			interval=$2
+		else
+			interval=10
+		fi
+
+		# start conky in background
+		conky -p 0 -c <(echo $conkyrc) -u $interval &
+		echo $! > .conky_pid
+		;;
+	stop)
+		kill $(cat .conky_pid)
+		rm .conky_pid
+		;;
+esac
