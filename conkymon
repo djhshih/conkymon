@@ -1,28 +1,22 @@
 #!/bin/bash
 
 # System monitor daemon service
-
+# 
+# interval    update interval in seconds
+# mountpoint  file system mount point to monitor for disk usage
+#
 # Requires: conky
+# Author:   David J. H. Shih <djh.shih@gmail.com>
+# License:  GPLv3
 
 set -eu
 
 if (( $# < 1 )); then
-	echo "usage: conkymon start [interval]" >&2
+	echo "usage: conkymon start [interval] [mountpoint]" >&2
 	echo "       conkymon stop" >&2
 	exit 1
 fi
 
-conkyrc='
-conky.config = {
- cpu_avg_samples = 6,
- no_buffers = true,
- out_to_console = false,
- out_to_stderr = true
-}
-conky.text = [[
-[conky] up: $uptime | cpu: $cpu% | mem: $mem ($memperc%) | disk: ${fs_used} (${fs_used_perc}%)
-]]
-'
 
 piddir=/var/run/user/$UID/
 pidfile=$piddir/conkymon.pid
@@ -30,12 +24,33 @@ pidfile=$piddir/conkymon.pid
 case $1 in
 	start)
 		shift
-		# set update interval (in seconds)
+
+		# set monitor update interval (in seconds)
 		if (( $# >=1 )); then
 			interval=$1
+			shift
 		else
-			interval=10
+			interval=60
 		fi
+
+		# set mount point for filesystem monitoring
+		if (( $# >= 1 )); then
+			mountpoint=$1
+			shift
+		else
+			mountpoint='/'
+		fi
+
+		conkyrc="
+			conky.config = {
+			 no_buffers = true,
+			 out_to_console = false,
+			 out_to_stderr = true
+			}
+			conky.text = [[
+			[conky] up: \$uptime | cpu: \$cpu% | mem: \$mem (\$memperc%) | disk: \${fs_used $mountpoint} (\${fs_used_perc $mountpoint}%)
+			]]
+		"
 
 		# start conky in background
 		if [[ ! -f $pidfile ]]; then
@@ -49,7 +64,7 @@ case $1 in
 		;;
 	stop)
 		shift
-		kill $(cat $pidfile)
+		kill $(cat $pidfile) || true
 		rm $pidfile
 		;;
 	*)
