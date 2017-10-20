@@ -16,7 +16,6 @@ conkyrc='
 conky.config = {
  cpu_avg_samples = 6,
  no_buffers = true,
- own_window = true,
  out_to_stderr = true
 }
 conky.text = [[
