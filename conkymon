@@ -24,7 +24,8 @@ conky.text = [[
 ]]
 '
 
-pidfile=/var/run/user/$UID/conkymon.pid
+piddir=/var/run/user/$UID/
+pidfile=$piddir/conkymon.pid
 
 case $1 in
 	start)
@@ -39,6 +40,7 @@ case $1 in
 		# start conky in background
 		if [[ ! -f $pidfile ]]; then
 			conky -c <(echo $conkyrc) -u $interval &
+			mkdir -p $piddir
 			echo $! > $pidfile
 		else
 			echo "Error: conkymon is already running (pid = $(cat $pidfile))"
